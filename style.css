@@ -15,6 +15,10 @@ body {
 
 /* --- Панель управления --- */
 #controls {
+    position: relative; /* Для позиционирования кнопки скрытия */
+}
+
+#controls-content {
     display: flex;
     flex-wrap: wrap; /* Позволяет элементам переноситься на новую строку */
     align-items: center;
@@ -23,6 +27,30 @@ body {
     background-color: #ffffff; /* Фон панели */
     border-bottom: 1px solid #ddd;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+#toggleControlsBtn {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    padding: 2px 10px;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.project-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
 }
 
 /* --- Стилизация элементов управления --- */
@@ -83,7 +111,7 @@ input[type="color"] {
 
 /* --- Адаптивность для мобильных устройств --- */
 @media (max-width: 768px) {
-    #controls {
+    #controls-content {
         flex-direction: column; /* Элементы в столбик */
         align-items: stretch; /* Растягиваем по ширине */
         padding: 10px;

@@ -9,6 +9,8 @@
 </head>
 <body>
   <div id="controls">
+    <button id="toggleControlsBtn">&#9660;</button> <!-- Кнопка-галочка -->
+    <div id="controls-content">
     <label for="gridType">Тип сетки:</label>
     <select id="gridType">
       <option value="square">Квадраты</option>
@@ -17,8 +19,14 @@
     </select>
     <button id="clearBtn">Очистить</button>
     <button id="savePngBtn">Сохранить как PNG</button>
-    <button id="saveProjectBtn">Сохранить проект</button>
-    <button id="loadProjectBtn">Загрузить проект</button>
+
+    <div class="project-controls">
+      <button id="saveProjectBtn">Сохранить</button>
+      <select id="projectList"></select>
+      <button id="loadProjectBtn">Загрузить</button>
+      <button id="deleteProjectBtn">Удалить</button>
+    </div>
+
     <button id="undoBtn">Удалить последнее</button>
     <button id="deleteLineBtn">Удалить линию</button>
     <button id="deleteBetweenBtn">Удалить от узла до узла</button>
@@ -34,6 +42,7 @@
       <option value="#fb8c00">Оранжевый</option>
       <option value="#8e24aa">Фиолетовый</option>
     </select>
+    </div>
   </div>
   <div class="scroll-container">
     <canvas id="canvas" width="2000" height="2000"></canvas>

@@ -43,6 +43,8 @@ const removeFillBtn = document.getElementById('removeFillBtn');
 const savePngBtn = document.getElementById('savePngBtn');
 const saveProjectBtn = document.getElementById('saveProjectBtn');
 const loadProjectBtn = document.getElementById('loadProjectBtn');
+const toggleControlsBtn = document.getElementById('toggleControlsBtn');
+const controlsContent = document.getElementById('controls-content');
 
 // --- ИНИЦИАЛИЗАЦИЯ РАЗМЕРОВ CANVAS ---
 function resizeCanvas() {
@@ -151,7 +153,28 @@ canvas.addEventListener('click', (e) => {
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? 0.9 : 1.1; handleZoom(delta, e.clientX, e.clientY); });
 canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { const rect = canvas.getBoundingClientRect(); const x = e.touches[0].clientX - rect.left; const y = e.touches[0].clientY - rect.top; if (fillContourMode || deleteMode || deleteBetweenMode || removeFillMode) { canvas.dispatchEvent(new MouseEvent('click', { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY })); } else { handlePanStart(e.touches[0].clientX, e.touches[0].clientY); const node = getNearestAnyNode(x, y); if (node) { isDrawing = true; selectedNode = node; draw(); } } } else if (e.touches.length === 2) { isPanning = false; lastTouchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); } });
 canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (e.touches.length === 1 && isDrawing) { const rect = canvas.getBoundingClientRect(); const x = e.touches[0].clientX - rect.left; const y = e.touches[0].clientY - rect.top; const hoverNode = getNearestAnyNode(x, y); tempLine = { from: selectedNode, to: hoverNode || coordToNode(screenToWorld(x, y)) }; draw(); } else if (e.touches.length === 2) { const newTouchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); const delta = newTouchDistance / lastTouchDistance; const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2; const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2; handleZoom(delta, centerX, centerY); lastTouchDistance = newTouchDistance; } });
-canvas.addEventListener('touchend', (e) => { if (isDrawing) { canvas.dispatchEvent(new MouseEvent('mouseup', {})); } handlePanEnd(); lastTouchDistance = 0; });
+canvas.addEventListener('touchend', (e) => {
+    if (isDrawing) {
+        // Явная логика для завершения линии, вместо симуляции mouseup
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.changedTouches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        const endNode = getNearestAnyNode(x, y);
+        if (endNode) {
+            const startCoord = getLineCoord(selectedNode), endCoord = getLineCoord(endNode);
+            if (startCoord && endCoord && Math.hypot(startCoord.x - endCoord.x, startCoord.y - endCoord.y) > 1e-6) {
+                userLines.push({ from: selectedNode, to: endNode, color: currentLineColor });
+            }
+        }
+        isDrawing = false;
+        selectedNode = null;
+        tempLine = null;
+        draw();
+    }
+    handlePanEnd();
+    lastTouchDistance = 0;
+});
 
 // --- ОБРАБОТЧИКИ КНОПОК ---
 startFillBtn.addEventListener('click', () => { fillContourMode = true; currentContour = []; startFillBtn.disabled = true; canvas.style.cursor = 'copy'; });
@@ -170,35 +193,103 @@ savePngBtn.addEventListener('click', () => {
     link.click();
 });
 
+
+// --- ЛОГИКА УПРАВЛЕНИЯ ПРОЕКТАМИ ---
+const projectList = document.getElementById('projectList');
+const deleteProjectBtn = document.getElementById('deleteProjectBtn');
+
+function getProjects() {
+    return JSON.parse(localStorage.getItem('gridProjects')) || [];
+}
+
+function saveProjects(projects) {
+    localStorage.setItem('gridProjects', JSON.stringify(projects));
+}
+
+function populateProjectList() {
+    const projects = getProjects();
+    projectList.innerHTML = '';
+    if (projects.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'Проектов нет';
+        option.disabled = true;
+        projectList.appendChild(option);
+    } else {
+        projects.forEach((p, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = p.name;
+            projectList.appendChild(option);
+        });
+    }
+}
+
 saveProjectBtn.addEventListener('click', () => {
+    const name = prompt('Введите имя проекта:', 'Новый проект');
+    if (!name) return;
+
+    const projects = getProjects();
     const projectData = {
+        name,
         userLines,
         fills,
         camera,
         gridType,
-        gridScale
+        gridScale,
+        timestamp: new Date().toISOString()
     };
-    localStorage.setItem('drawingProject', JSON.stringify(projectData));
-    alert('Проект сохранен!');
+    projects.push(projectData);
+    saveProjects(projects);
+    populateProjectList();
+    alert(`Проект "${name}" сохранен!`);
 });
 
 loadProjectBtn.addEventListener('click', () => {
-    const savedData = localStorage.getItem('drawingProject');
-    if (savedData) {
-        const projectData = JSON.parse(savedData);
-        userLines = projectData.userLines;
-        fills = projectData.fills;
-        Object.assign(camera, projectData.camera);
-        gridType = projectData.gridType;
-        gridScale = projectData.gridScale;
-        
-        gridTypeSelect.value = gridType;
-        draw();
-        alert('Проект загружен!');
-    } else {
-        alert('Сохраненный проект не найден.');
+    const projects = getProjects();
+    const selectedIndex = projectList.value;
+    if (selectedIndex < 0 || selectedIndex >= projects.length) {
+        alert('Проект для загрузки не выбран.');
+        return;
+    }
+
+    const projectData = projects[selectedIndex];
+    userLines = projectData.userLines || [];
+    fills = projectData.fills || [];
+    Object.assign(camera, projectData.camera);
+    gridType = projectData.gridType;
+    gridScale = projectData.gridScale;
+
+    gridTypeSelect.value = gridType;
+    draw();
+    alert(`Проект "${projectData.name}" загружен!`);
+});
+
+deleteProjectBtn.addEventListener('click', () => {
+    const projects = getProjects();
+    const selectedIndex = projectList.value;
+    if (selectedIndex < 0 || selectedIndex >= projects.length) {
+        alert('Проект для удаления не выбран.');
+        return;
+    }
+
+    const projectName = projects[selectedIndex].name;
+    if (confirm(`Вы уверены, что хотите удалить проект "${projectName}"?`)) {
+        projects.splice(selectedIndex, 1);
+        saveProjects(projects);
+        populateProjectList();
+        alert(`Проект "${projectName}" удален.`);
     }
 });
 
+
 // --- ИНИЦИАЛИЗАЦИЯ ---
 resizeCanvas();
+populateProjectList(); // Заполняем список проектов при запуске
+
+toggleControlsBtn.addEventListener('click', () => {
+    const isHidden = controlsContent.style.display === 'none';
+    controlsContent.style.display = isHidden ? '' : 'none';
+    toggleControlsBtn.innerHTML = isHidden ? '&#9660;' : '&#9650;';
+    // Даем небольшую задержку перед перерисовкой canvas, чтобы layout успел обновиться
+    setTimeout(resizeCanvas, 50);
+});
