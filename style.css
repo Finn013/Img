@@ -44,6 +44,17 @@ body {
     cursor: pointer;
 }
 
+.autohide-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    position: absolute;
+    top: 100%;
+    left: 10px;
+    transform: translateY(-100%);
+}
+
 .project-controls {
     display: flex;
     gap: 6px;

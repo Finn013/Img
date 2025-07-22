@@ -22,7 +22,7 @@ let removeFillMode = false;
 const camera = { x: 0, y: 0, zoom: 1 };
 let isPanning = false;
 let panStart = { x: 0, y: 0 };
-let lastTouchDistance = 0;
+let lastTouchCenter = null;
 
 // --- РЕЖИМЫ РАБОТЫ ---
 let deleteMode = false;
@@ -45,6 +45,7 @@ const saveProjectBtn = document.getElementById('saveProjectBtn');
 const loadProjectBtn = document.getElementById('loadProjectBtn');
 const toggleControlsBtn = document.getElementById('toggleControlsBtn');
 const controlsContent = document.getElementById('controls-content');
+const autohideCheckbox = document.getElementById('autohideCheckbox');
 
 // --- ИНИЦИАЛИЗАЦИЯ РАЗМЕРОВ CANVAS ---
 function resizeCanvas() {
@@ -151,8 +152,62 @@ canvas.addEventListener('click', (e) => {
 });
 
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? 0.9 : 1.1; handleZoom(delta, e.clientX, e.clientY); });
-canvas.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { const rect = canvas.getBoundingClientRect(); const x = e.touches[0].clientX - rect.left; const y = e.touches[0].clientY - rect.top; if (fillContourMode || deleteMode || deleteBetweenMode || removeFillMode) { canvas.dispatchEvent(new MouseEvent('click', { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY })); } else { handlePanStart(e.touches[0].clientX, e.touches[0].clientY); const node = getNearestAnyNode(x, y); if (node) { isDrawing = true; selectedNode = node; draw(); } } } else if (e.touches.length === 2) { isPanning = false; lastTouchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); } });
-canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (e.touches.length === 1 && isDrawing) { const rect = canvas.getBoundingClientRect(); const x = e.touches[0].clientX - rect.left; const y = e.touches[0].clientY - rect.top; const hoverNode = getNearestAnyNode(x, y); tempLine = { from: selectedNode, to: hoverNode || coordToNode(screenToWorld(x, y)) }; draw(); } else if (e.touches.length === 2) { const newTouchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); const delta = newTouchDistance / lastTouchDistance; const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2; const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2; handleZoom(delta, centerX, centerY); lastTouchDistance = newTouchDistance; } });
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.touches[0].clientX - rect.left;
+        const y = e.touches[0].clientY - rect.top;
+        if (fillContourMode || deleteMode || deleteBetweenMode || removeFillMode) {
+            canvas.dispatchEvent(new MouseEvent('click', { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }));
+        } else {
+            const node = getNearestAnyNode(x, y);
+            if (node) {
+                isDrawing = true;
+                selectedNode = node;
+                draw();
+            }
+        }
+    } else if (e.touches.length === 2) {
+        isDrawing = false; // Прерываем рисование, если появился второй палец
+        isPanning = true;
+        lastTouchCenter = {
+            x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+            y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+        };
+        lastTouchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }
+});
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && isDrawing) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.touches[0].clientX - rect.left;
+        const y = e.touches[0].clientY - rect.top;
+        const hoverNode = getNearestAnyNode(x, y);
+        tempLine = { from: selectedNode, to: hoverNode || coordToNode(screenToWorld(x, y)) };
+        draw();
+    } else if (e.touches.length === 2) {
+        const touchCenter = {
+            x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+            y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+        };
+        const newTouchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const delta = newTouchDistance / lastTouchDistance;
+        
+        // Панорамирование
+        if (lastTouchCenter) {
+            camera.x += touchCenter.x - lastTouchCenter.x;
+            camera.y += touchCenter.y - lastTouchCenter.y;
+        }
+
+        // Масштабирование
+        handleZoom(delta, touchCenter.x, touchCenter.y);
+
+        lastTouchCenter = touchCenter;
+        lastTouchDistance = newTouchDistance;
+    }
+});
 canvas.addEventListener('touchend', (e) => {
     if (isDrawing) {
         // Явная логика для завершения линии, вместо симуляции mouseup
@@ -174,6 +229,7 @@ canvas.addEventListener('touchend', (e) => {
     }
     handlePanEnd();
     lastTouchDistance = 0;
+    lastTouchCenter = null;
 });
 
 // --- ОБРАБОТЧИКИ КНОПОК ---
@@ -292,4 +348,14 @@ toggleControlsBtn.addEventListener('click', () => {
     toggleControlsBtn.innerHTML = isHidden ? '&#9660;' : '&#9650;';
     // Даем небольшую задержку перед перерисовкой canvas, чтобы layout успел обновиться
     setTimeout(resizeCanvas, 50);
+});
+
+controlsContent.addEventListener('click', (e) => {
+    if (autohideCheckbox.checked && e.target.tagName === 'BUTTON') {
+        setTimeout(() => {
+            controlsContent.style.display = 'none';
+            toggleControlsBtn.innerHTML = '&#9650;';
+            resizeCanvas();
+        }, 100); // Небольшая задержка, чтобы успеть увидеть эффект нажатия кнопки
+    }
 });

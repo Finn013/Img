@@ -1,53 +1,37 @@
-const CACHE_NAME = 'grid-drawer-cache-v2'; // <-- Версия кеша
+
+const CACHE_NAME = 'grid-drawer-cache'; // Простое имя, без версий
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/main.js',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/Img/', // Важно для GitHub Pages, чтобы кешировать корневой путь репозитория
+  '/Img/index.html',
+  '/Img/style.css',
+  '/Img/main.js',
+  '/Img/manifest.json',
+  '/Img/icon-192.png',
+  '/Img/icon-512.png'
 ];
 
-// 1. Установка: кешируем все файлы
+// 1. Установка: кешируем все необходимое один раз.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Кеш открыт, добавляем файлы');
+        console.log('Кеш создан. Все файлы для офлайн-работы добавлены.');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-// 2. Активация: удаляем старые кеши
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          // Если имя кеша не совпадает с текущей версией, удаляем его
-          if (cacheName !== CACHE_NAME) {
-            console.log('Удаление старого кеша:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
-
-// 3. Перехват запросов: отдаем из кеша
+// 2. Перехват запросов: всегда отвечаем только из кеша.
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Если ресурс есть в кеше, возвращаем его
-        if (response) {
-          return response;
-        }
-        // Иначе, пытаемся загрузить из сети (на случай, если что-то не попало в кеш)
-        return fetch(event.request);
+        // Если запрос есть в кеше, возвращаем его. 
+        // Если нет - ничего не делаем. Запрос просто не будет выполнен.
+        return response;
       })
   );
 });
+
+// Логика активации и удаления старых кешей полностью убрана, 
+// так как сервис-воркер больше не управляет версиями.
