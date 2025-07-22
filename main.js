@@ -154,37 +154,47 @@ canvas.addEventListener('click', (e) => {
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); const delta = e.deltaY > 0 ? 0.9 : 1.1; handleZoom(delta, e.clientX, e.clientY); });
 canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
 
     if (e.touches.length === 1) {
-        // Если активен один из режимов, требующих "тапа", симулируем клик.
-        if (fillContourMode || deleteMode || deleteBetweenMode || removeFillMode) {
-            // Создаем и отправляем событие клика, чтобы использовать уже существующую логику.
-            const clickEvent = new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            e.target.dispatchEvent(clickEvent);
-            return; // Выходим, чтобы не запустить логику рисования.
-        }
-
-        // Если ни один режим не активен, начинаем рисование.
-        const rect = canvas.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        const node = getNearestAnyNode(x, y);
-        if (node) {
-            isDrawing = true;
-            selectedNode = node;
+        if (removeFillMode) {
+            // Явная обработка удаления области по тапу
+            let removed = false;
+            const worldPoint = screenToWorld(x, y);
+            for (let i = fills.length - 1; i >= 0; i--) {
+                const polygon = fills[i].contour.map(getLineCoord);
+                if (pointInPolygon(worldPoint, polygon)) {
+                    fills.splice(i, 1);
+                    removed = true;
+                    break;
+                }
+            }
+            if (!removed) alert('Здесь нет заливки для удаления.');
+            // Сбрасываем режим после попытки удаления
+            removeFillMode = false;
+            removeFillBtn.disabled = false;
+            canvas.style.cursor = '';
             draw();
+            return; // Выходим, чтобы не запустить другую логику
+        } else if (fillContourMode || deleteMode || deleteBetweenMode) {
+            // Для остальных режимов симуляция клика остается рабочим вариантом
+            canvas.dispatchEvent(new MouseEvent('click', { clientX: touch.clientX, clientY: touch.clientY }));
+        } else {
+            // Обычное рисование или панорамирование
+            handlePanStart(touch.clientX, touch.clientY);
+            const node = getNearestAnyNode(x, y);
+            if (node) {
+                isDrawing = true;
+                selectedNode = node;
+                draw();
+            }
         }
     } else if (e.touches.length === 2) {
-        // Логика для двух пальцев (панорамирование и зум)
-        isDrawing = false; // Прерываем рисование
         isPanning = true;
-        lastTouchCenter = { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+        isDrawing = false;
         lastTouchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
     }
 });
@@ -253,30 +263,7 @@ canvas.addEventListener('touchmove', (e) => {
         lastTouchDistance = newTouchDistance;
     }
 });
-canvas.addEventListener('touchend', (e) => {
-    // Завершение обычного рисования линии (если оно было начато)
-    if (isDrawing) {
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.changedTouches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        const endNode = getNearestAnyNode(x, y);
-        if (endNode && selectedNode) {
-            const startCoord = getLineCoord(selectedNode), endCoord = getLineCoord(endNode);
-            if (startCoord && endCoord && Math.hypot(startCoord.x - endCoord.x, startCoord.y - endCoord.y) > 1e-6) {
-                userLines.push({ from: selectedNode, to: endNode, color: currentLineColor });
-            }
-        }
-        isDrawing = false;
-        selectedNode = null;
-        tempLine = null;
-        draw();
-    }
-
-    // Сброс состояний панорамирования и масштабирования
-    handlePanEnd();
-    lastTouchCenter = null;
-});
+canvas.addEventListener('touchend', (e) => { if (isDrawing) { canvas.dispatchEvent(new MouseEvent('mouseup', {})); } handlePanEnd(); lastTouchDistance = 0; });
 
 // --- ОБРАБОТЧИКИ КНОПОК ---
 startFillBtn.addEventListener('click', () => { fillContourMode = true; currentContour = []; startFillBtn.disabled = true; canvas.style.cursor = 'copy'; });
