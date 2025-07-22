@@ -6,6 +6,7 @@
   <title>Рисование по сетке</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
 </head>
 <body>
   <div id="controls">
@@ -52,7 +53,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js').then(registration => {
+        navigator.serviceWorker.register('service-worker.js').then(registration => {
           console.log('ServiceWorker registration successful with scope: ', registration.scope);
         }, err => {
           console.log('ServiceWorker registration failed: ', err);

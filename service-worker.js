@@ -1,7 +1,7 @@
 
 const CACHE_NAME = 'grid-drawer-cache'; // Простое имя, без версий
 const urlsToCache = [
-  '/Img/', // Важно для GitHub Pages, чтобы кешировать корневой путь репозитория
+  '/Img/',
   '/Img/index.html',
   '/Img/style.css',
   '/Img/main.js',
