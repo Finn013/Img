@@ -1,0 +1,22 @@
+
+{
+  "name": "Интерактивный Редактор Сетки",
+  "short_name": "Редактор Сетки",
+  "description": "Приложение для рисования на процедурно генерируемых сетках.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#2c2c2c",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

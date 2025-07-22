@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Рисование по сетке</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div id="controls">
+    <label for="gridType">Тип сетки:</label>
+    <select id="gridType">
+      <option value="square">Квадраты</option>
+      <option value="triangle">Треугольники</option>
+      <option value="hexagon">Шестиугольники</option>
+    </select>
+    <button id="clearBtn">Очистить</button>
+    <button id="savePngBtn">Сохранить как PNG</button>
+    <button id="saveProjectBtn">Сохранить проект</button>
+    <button id="loadProjectBtn">Загрузить проект</button>
+    <button id="undoBtn">Удалить последнее</button>
+    <button id="deleteLineBtn">Удалить линию</button>
+    <button id="deleteBetweenBtn">Удалить от узла до узла</button>
+    <button id="startFillBtn">Начать контур</button>
+    <button id="removeFillBtn">Удалить область</button>
+    <label for="lineColor">Цвет линии:</label>
+    <select id="lineColor">
+      <option value="#000000">Чёрный</option>
+      <option value="#e53935">Красный</option>
+      <option value="#1976d2">Синий</option>
+      <option value="#43a047">Зелёный</option>
+      <option value="#fbc02d">Жёлтый</option>
+      <option value="#fb8c00">Оранжевый</option>
+      <option value="#8e24aa">Фиолетовый</option>
+    </select>
+  </div>
+  <div class="scroll-container">
+    <canvas id="canvas" width="2000" height="2000"></canvas>
+  </div>
+  <script src="main.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, err => {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html> 
